@@ -1,0 +1,110 @@
+
+#include <iostream>
+#include <vector>
+#include <map>
+#include <ctime>
+#include <algorithm>
+#include <cmath>
+using namespace std;
+
+class Node {
+public:
+    char symbol;
+    int freq;
+    Node* left;
+    Node* right;
+
+    Node(char symbol, int freq, Node* left = nullptr, Node* right = nullptr)
+        : symbol(symbol), freq(freq), left(left), right(right) {}
+};
+
+// Helper function to recursively calculate Huffman codes
+void calculateHuffmanCodes(Node* node, const string& code, map<char, string>& huffmanCodes) {
+    if (node) {
+        // If it's a leaf node, add code to the map
+        if (!node->left && !node->right) {
+            huffmanCodes[node->symbol] = code;
+        }
+        // Recur for left and right children
+        calculateHuffmanCodes(node->left, code + "0", huffmanCodes);
+        calculateHuffmanCodes(node->right, code + "1", huffmanCodes);
+    }
+}
+
+int main() {
+    int n;
+    cout << "Enter the number of characters: ";
+    cin >> n;
+
+    vector<char> chars(n);
+    vector<int> freq(n);
+    cout << "Enter characters and their frequencies:\n";
+    for (int i = 0; i < n; ++i) {
+        cout << "Character " << i + 1 << ": ";
+        cin >> chars[i];
+        cout << "Frequency of " << chars[i] << ": ";
+        cin >> freq[i];
+    }
+
+    // Start measuring time for Huffman tree construction
+    clock_t start_time = clock();
+
+    // Initialize nodes list with individual character nodes
+    vector<Node*> nodes;
+    for (int i = 0; i < n; ++i) {
+        nodes.push_back(new Node(chars[i], freq[i]));
+    }
+
+    // Build the Huffman Tree by repeatedly combining the two lowest-frequency nodes
+    while (nodes.size() > 1) {
+        // Sort nodes by frequency in ascending order
+        sort(nodes.begin(), nodes.end(), [](Node* a, Node* b) {
+            return a->freq < b->freq;
+        });
+
+        // Take the two nodes with the lowest frequencies
+        Node* left = nodes[0];
+        Node* right = nodes[1];
+
+        // Create a new node combining these two
+        Node* newNode = new Node('\0', left->freq + right->freq, left, right);
+
+        // Remove the two nodes and add the new node to the list
+        nodes.erase(nodes.begin());
+        nodes.erase(nodes.begin());
+        nodes.push_back(newNode);
+    }
+
+    // End time for Huffman tree construction
+    clock_t end_time = clock();
+    double tree_duration = double(end_time - start_time) / CLOCKS_PER_SEC;
+
+    // Start measuring time for Huffman code calculation
+    clock_t code_start_time = clock();
+
+    map<char, string> huffmanCodes;
+    calculateHuffmanCodes(nodes[0], "", huffmanCodes); // Root of the Huffman tree is in nodes[0]
+
+    clock_t code_end_time = clock();
+    double code_duration = double(code_end_time - code_start_time) / CLOCKS_PER_SEC;
+
+    // Calculate estimated space in bytes for storing Huffman codes
+    double spaceUsed = 0;
+    for (const auto& kv : huffmanCodes) {
+        int index = find(chars.begin(), chars.end(), kv.first) - chars.begin();
+        spaceUsed += kv.second.length() * freq[index];
+    }
+    spaceUsed = ceil(spaceUsed / 8);
+
+    // Output results
+    cout << "Huffman Tree Construction Time: " << tree_duration << " seconds" << endl;
+    cout << "Huffman Code Calculation Time: " << code_duration << " seconds" << endl;
+    cout << "Estimated Space Used for Huffman Codes: " << spaceUsed << " bytes" << endl;
+
+    cout << "Huffman Codes:\n";
+    for (const auto& kv : huffmanCodes) {
+        cout << kv.first << " -> " << kv.second << endl;
+    }
+
+    return 0;
+}
